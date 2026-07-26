@@ -169,7 +169,28 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "s3:PutAccountPublicAccessBlock"
         ]
         Resource = "*"
+      },
+      {
+        "Sid" : "ServiceCatalogReleaseManagement",
+        "Effect" : "Allow",
+        "Action" : [
+          "servicecatalog:CreateProvisioningArtifact",
+          "servicecatalog:DescribeProvisioningArtifact",
+          "servicecatalog:ListProvisioningArtifacts",
+          "servicecatalog:UpdateProvisioningArtifact"
+        ],
+        "Resource" : "arn:aws:servicecatalog:us-east-1:*:product/*"
+      },
+      {
+        "Sid" : "ServiceCatalogArtifactUpload",
+        "Effect" : "Allow",
+        "Action" : [
+          "s3:PutObject",
+          "s3:PutObjectAcl"
+        ],
+        "Resource" : "arn:aws:s3:::central-service-catalog-assets/products/*"
       }
+
     ]
   })
 }

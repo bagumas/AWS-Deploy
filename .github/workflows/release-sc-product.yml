@@ -1,0 +1,67 @@
+name: Publish Service Catalog Product
+
+on:
+  push:
+    tags:
+      - 'v*'  # Triggers on version tags (e.g., v1.1.0, v2.0.0)
+
+permissions:
+  id-token: write  # Critical requirement for AWS OIDC authentication
+  contents: read
+
+env:
+  AWS_REGION: "us-east-1"
+  ROLE_TO_ASSUME: "arn:aws:iam::123456789012:role/github-actions-terraform-executor" # Swap with your true Account ID
+  S3_BUCKET: "central-service-catalog-assets"
+  PRODUCT_NAME: "Secure S3 Storage Bucket"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+          audience: "sts.amazonaws.com"
+
+      - name: Package Module Tarball
+        run: |
+          # Compress the directory enclosing your runtime Terraform manifests
+          tar -czvf secure-s3-${{ github.ref_name }}.tar.gz secure-s3-product/
+
+      - name: Upload Release Artifact to S3
+        run: |
+          aws s3 cp secure-s3-${{ github.ref_name }}.tar.gz \
+            s3://${{ env.S3_BUCKET }}/products/secure-s3-${{ github.ref_name }}.tar.gz
+
+      - name: Register New Product Version in Service Catalog
+        run: |
+          # 1. Dynamically retrieve the Product ID by its explicit system Name
+          PRODUCT_ID=$(aws servicecatalog search-products-as-admin \
+            --filters "FullTextSearch=${{ env.PRODUCT_NAME }}" \
+            --query "ProductViewDetails[0].ProductViewSummary.ProductId" --output text)
+          
+          if [ "$PRODUCT_ID" == "None" ] || [ -z "$PRODUCT_ID" ]; then
+            echo "Error: Target Service Catalog Product could not be found."
+            exit 1
+          fi
+          
+          echo "Found Target Product ID: $PRODUCT_ID"
+
+          # 2. Programmatically cut a new Provisioning Artifact Version pointing to the new asset
+          aws servicecatalog create-provisioning-artifact \
+            --product-id "$PRODUCT_ID" \
+            --parameters "{
+              \"Name\": \"${{ github.ref_name }}\",
+              \"Description\": \"Automated distribution via GitHub Run ID ${{ github.run_id }}\",
+              \"Type\": \"\EXTERNAL",
+              \"Info\": {
+                \"LoadTemplateFromURL\": \"https://${{ env.S3_BUCKET }}.s3.${{ env.AWS_REGION }}://{{ github.ref_name }}.tar.gz\"
+              }
+            }"
+
