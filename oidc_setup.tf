@@ -1,6 +1,10 @@
 resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://githubusercontent.com"
-  client_id_list  = ["://amazonaws.com"]
+  # FIXED: Standardized to the official GitHub OIDC identity service endpoint URL
+  url             = "https://token.actions.githubusercontent.com"
+  
+  # FIXED: Standardized to the exact audience string expected by AWS STS
+  client_id_list  = ["sts.amazonaws.com"]
+  
   thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1", "1c58a3a8518e8759bf075b76b750d4f2df264fcd"]
 }
 
@@ -16,10 +20,13 @@ resource "aws_iam_role" "github_actions" {
         Action    = "sts:AssumeRoleWithWebIdentity"
         Condition = {
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = "repo:bagumas@33612024/AWS-Deploy@1312335209:ref:refs/heads/main" 
+            # FIXED: Targets your exact unique repository identity safely with a clean wildcard suffix
+            "token.actions.githubusercontent.com:sub" = "repo:bagumas@33612024/AWS-Deploy@1312335209:*"
           }
           StringEquals = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+            # FIXED: Isolates the main branch requirement without breaking manual run metadata paths
+            "token.actions.githubusercontent.com:ref" = "refs/heads/main"
           }
         }
       }
@@ -31,8 +38,6 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
   name = "terraform-pipeline-execution-policy"
   role = aws_iam_role.github_actions.id
 
-
-  # Move the skip comment directly above the policy string line down here:
   #checkov:skip=CKV_AWS_355:Global AWS Organizations and S3 Account Level configurations require wildcard resource formats by AWS design.
   policy = jsonencode({
     Version = "2012-10-17"
@@ -79,8 +84,6 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "ec2:ModifyInstanceAttribute",
           "ec2:EnableEbsEncryptionByDefault"
         ]
-        # FIXED: Removed the global "*" wildcard for write/restrictable actions to clear CKV_AWS_355 & CKV_AWS_290
-        # This restricts execution power tightly to your primary us-east-1 region space
         Resource = [
           "arn:aws:ec2:us-east-1:*:instance/*",
           "arn:aws:ec2:us-east-1:*:security-group/*",
@@ -101,7 +104,6 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "ec2:DescribeInstanceStatus",
           "ec2:DescribeEbsEncryptionByDefault"
         ]
-        # These are read-only lookup APIs. AWS forces them to use "*", which Checkov permits.
         Resource = "*"
       },
       {
@@ -144,7 +146,6 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "organizations:AttachPolicy",
           "organizations:DetachPolicy"
         ]
-        # FIXED: Confined write actions strictly to the organizational infrastructure tree path
         Resource = [
           "arn:aws:organizations::*:ou/o-*/*",
           "arn:aws:organizations::*:policy/o-*/*"
@@ -156,7 +157,7 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
         Action = [
           "organizations:DescribeOrganization"
         ]
-        Resource = "*" # AWS forces this specific call to use global wildcards
+        Resource = "*"
       },
       {
         Sid    = "GlobalAccountLevelConfigurations"
@@ -165,7 +166,7 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "s3:GetAccountPublicAccessBlock",
           "s3:PutAccountPublicAccessBlock"
         ]
-        Resource = "arn:aws:s3::*:account/*"
+        Resource = "*"
       }
     ]
   })
