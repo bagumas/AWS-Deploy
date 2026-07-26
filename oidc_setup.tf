@@ -17,7 +17,7 @@ resource "aws_iam_role" "github_actions" {
         Condition = {
           StringLike = {
             # Use a trailing wildcard block pattern to cover any ref, branch, or environment change
-            "token.actions.githubusercontent.com:sub" = "repo:bagumas/AWS-Deploy:*"
+            "token.actions.githubusercontent.com:sub" = "repo:bagumas@33612024/AWS-Deploy@1312335209:ref:refs/heads/main"
           }
           StringEquals = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
