@@ -68,6 +68,8 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
         Action = [
           "ec2:RunInstances",
           "ec2:TerminateInstances",
+          "ec2:CreateTags",
+          "ec2:DeleteTags",
           "ec2:CreateSecurityGroup",
           "ec2:DeleteSecurityGroup",
           "ec2:AuthorizeSecurityGroupIngress",
@@ -91,11 +93,7 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
         Sid    = "NonRestrictableEC2Discovery"
         Effect = "Allow"
         Action = [
-          "ec2:DescribeInstances",
-          "ec2:DescribeSecurityGroups",
-          "ec2:DescribeInstanceAttribute",
-          "ec2:DescribeInstanceStatus",
-          "ec2:DescribeEbsEncryptionByDefault",
+          "ec2:Describe*",
           # FIXED: Added the required read hook baseline API to clear your ec2:GetEbsEncryptionByDefault error
           "ec2:GetEbsEncryptionByDefault"
         ]
@@ -145,6 +143,8 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "organizations:DescribePolicy",
           "organizations:AttachPolicy",
           "organizations:DetachPolicy",
+          "organizations:ListTargetsForPolicy",
+          "organizations:ListPoliciesForTarget",
           # FIXED: Added the tags auditing capability requirement to clear your Organizations:ListTagsForResource errors
           "organizations:ListTagsForResource"
         ]
