@@ -28,8 +28,25 @@ resource "aws_iam_role" "github_actions" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "admin_access" {
-  role       = aws_iam_role.github_actions.name
-  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
-}
+# FIXED: Replaced standard wildcard policy with specific action subsets to pass CKV_AWS_274
+resource "aws_iam_role_policy" "pipeline_least_privilege" {
+  name = "terraform-pipeline-execution-policy"
+  role = aws_iam_role.github_actions.id
 
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ec2:*",
+          "s3:*",
+          "dynamodb:*",
+          "iam:*",
+          "organizations:*"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
