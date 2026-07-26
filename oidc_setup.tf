@@ -162,7 +162,7 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "s3:GetAccountPublicAccessBlock",
           "s3:PutAccountPublicAccessBlock"
         ]
-        Resource = "*"
+        Resource = "arn:aws:s3::*:account/*"
       }
     ]
   })
