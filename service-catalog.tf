@@ -60,8 +60,8 @@ resource "aws_servicecatalog_constraint" "launch_constraint" {
 
 resource "aws_servicecatalog_portfolio_share" "org_share" {
   portfolio_id      = aws_servicecatalog_portfolio.platform_portfolio.id
-  principal_id      = data.aws_organizations_organization.current.arn 
+  principal_id      = data.aws_organizations_organization.current.arn
   type              = "ORGANIZATION"
-  share_tag_options = false 
+  share_tag_options = false
 }
 
