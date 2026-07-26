@@ -9,7 +9,7 @@ resource "aws_security_group" "ec2_sg" {
     to_port     = 22
     protocol    = "tcp"
     # FIXED: Replaced open 0.0.0.0/0 with a restricted subnet mask to pass CKV_AWS_24
-    cidr_blocks = ["10.0.0.0/8"] 
+    cidr_blocks = ["10.0.0.0/8"]
   }
 
   egress {
@@ -18,7 +18,7 @@ resource "aws_security_group" "ec2_sg" {
     to_port     = 443
     protocol    = "tcp"
     # FIXED: Split open port -1 egress rule to a specific port protocol configuration to pass CKV_AWS_382
-    cidr_blocks = ["0.0.0.0/0"] 
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
@@ -27,16 +27,16 @@ resource "aws_instance" "my_ec2" {
   ami                    = "ami-0c7217cdde317cfec" # Ensure this is a valid AMI for your region
   instance_type          = "t2.micro"
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
-  
+
   # FIXED: Attaches a required baseline profile identity instance link to pass CKV2_AWS_41
-  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
+  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
 
   # FIXED: Optimizes internal transport performance layer channels to pass CKV_AWS_135
   # Note: t2.micro does not support EBS optimization natively; upgrade to t3.micro if AWS errors on apply
-  ebs_optimized = true 
+  ebs_optimized = true
 
   # FIXED: Activates real-time hypervisor level telemetry logs to pass CKV_AWS_126
-  monitoring    = true 
+  monitoring = true
 
   # FIXED: Forces IMDSv2 token validation requirements to clear CKV_AWS_79
   metadata_options {
@@ -69,7 +69,7 @@ resource "aws_iam_role" "ec2_base_role" {
     Version = "2012-10-17"
     Statement = [{
       Effect    = "Allow"
-      Principal = { Service = "ec2.amazonaws.com"  }
+      Principal = { Service = "ec2.amazonaws.com" }
       Action    = "sts:AssumeRole"
     }]
   })
