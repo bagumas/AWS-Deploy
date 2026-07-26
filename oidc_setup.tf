@@ -31,6 +31,9 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
   name = "terraform-pipeline-execution-policy"
   role = aws_iam_role.github_actions.id
 
+
+  # Move the skip comment directly above the policy string line down here:
+  #checkov:skip=CKV_AWS_355:Global AWS Organizations and S3 Account Level configurations require wildcard resource formats by AWS design.
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
