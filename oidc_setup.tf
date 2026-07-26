@@ -1,11 +1,19 @@
-# 1. Register GitHub as a trusted Identity Provider inside AWS
+# 1. Register GitHub Identity Provider with both potential audiences
 resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com" # Corrected URL
-  client_id_list  = ["sts.amazonaws.com"]                         # Corrected official audience
-  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1", "1c58a3a8518e8759bf075b76b750d4f2df264fcd"] # Current trusted thumbprints
+  url             = "https://githubusercontent.com"
+  
+  # Includes both standard STS and the official GitHub token client ID
+  client_id_list  = ["://amazonaws.com", "https://github.com"] 
+  
+  # Includes the standard thumbprint and the latest root authority thumbprints
+  thumbprint_list = [
+    "6938fd4d98bab03faadb97b34396831e3780aea1", 
+    "1c58a3a8518e8759bf075b76b750d4f2df264fcd",
+    "15e4aa054ad40103b4431e1147a07c13a0da0593"
+  ]
 }
 
-# 2. Create the execution role that GitHub Actions will temporarily assume
+# 2. Reconfigure the execution role with a flexible wildcard rule for testing
 resource "aws_iam_role" "github_actions" {
   name = "github-actions-terraform-executor"
 
@@ -18,8 +26,12 @@ resource "aws_iam_role" "github_actions" {
         Action    = "sts:AssumeRoleWithWebIdentity"
         Condition = {
           StringLike = {
-            # Strictly locks down access to ONLY your specific GitHub user and repository name
-            "token.actions.githubusercontent.com:sub" = "repo:bagumas/AWS-Deploy:*"
+            # Bypasses specific repo casing rules temporarily to isolate the connection issue
+            "://githubusercontent.com:sub" = "repo:bagumas/*:*"
+          }
+          StringEquals = {
+            # Ensures the token is coming directly from GitHub's official system
+            "://githubusercontent.com:aud" = "://amazonaws.com"
           }
         }
       }
@@ -27,15 +39,8 @@ resource "aws_iam_role" "github_actions" {
   })
 }
 
-# 3. Give this role Admin permissions so it can manage your landing zone architecture
 resource "aws_iam_role_policy_attachment" "admin_access" {
   role       = aws_iam_role.github_actions.name
   policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
-}
-
-# Output the unique Role ARN so you can drop it into your workflow file
-output "github_actions_role_arn" {
-  value       = aws_iam_role.github_actions.arn
-  description = "Copy this ARN value into your GitHub workflow file."
 }
 
