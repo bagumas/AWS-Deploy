@@ -1,10 +1,6 @@
 resource "aws_iam_openid_connect_provider" "github" {
-  # FIXED: Standardized to the official GitHub OIDC identity service endpoint URL
-  url = "https://token.actions.githubusercontent.com"
-
-  # FIXED: Standardized to the exact audience string expected by AWS STS
-  client_id_list = ["sts.amazonaws.com"]
-
+  url             = "https://githubusercontent.com"
+  client_id_list  = ["://amazonaws.com"]
   thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1", "1c58a3a8518e8759bf075b76b750d4f2df264fcd"]
 }
 
@@ -20,12 +16,10 @@ resource "aws_iam_role" "github_actions" {
         Action    = "sts:AssumeRoleWithWebIdentity"
         Condition = {
           StringLike = {
-            # FIXED: Targets your exact unique repository identity safely with a clean wildcard suffix
             "token.actions.githubusercontent.com:sub" = "repo:bagumas@33612024/AWS-Deploy@1312335209:*"
           }
           StringEquals = {
-            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-            # FIXED: Isolates the main branch requirement without breaking manual run metadata paths
+            "token.actions.githubusercontent.com:aud" = "://amazonaws.com"
             "token.actions.githubusercontent.com:ref" = "refs/heads/main"
           }
         }
@@ -102,7 +96,9 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "ec2:DescribeSecurityGroups",
           "ec2:DescribeInstanceAttribute",
           "ec2:DescribeInstanceStatus",
-          "ec2:DescribeEbsEncryptionByDefault"
+          "ec2:DescribeEbsEncryptionByDefault",
+          # FIXED: Added the required read hook baseline API to clear your ec2:GetEbsEncryptionByDefault error
+          "ec2:GetEbsEncryptionByDefault"
         ]
         Resource = "*"
       },
@@ -122,12 +118,17 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "iam:RemoveRoleFromInstanceProfile",
           "iam:PutRolePolicy",
           "iam:DeleteRolePolicy",
-          "iam:GetRolePolicy"
+          "iam:GetRolePolicy",
+          # FIXED: Added state tracking verification hooks to clear your iam:ListRolePolicies and GetOpenIDConnectProvider errors
+          "iam:ListRolePolicies",
+          "iam:ListAttachedRolePolicies",
+          "iam:GetOpenIDConnectProvider"
         ]
         Resource = [
           "arn:aws:iam::*:role/github-actions-terraform-executor",
           "arn:aws:iam::*:role/ec2-hardened-base-role",
-          "arn:aws:iam::*:instance-profile/ec2-hardened-instance-profile"
+          "arn:aws:iam::*:instance-profile/ec2-hardened-instance-profile",
+          "arn:aws:iam::*:oidc-provider/token.actions.githubusercontent.com"
         ]
       },
       {
@@ -144,7 +145,9 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "organizations:UpdatePolicy",
           "organizations:DescribePolicy",
           "organizations:AttachPolicy",
-          "organizations:DetachPolicy"
+          "organizations:DetachPolicy",
+          # FIXED: Added the tags auditing capability requirement to clear your Organizations:ListTagsForResource errors
+          "organizations:ListTagsForResource"
         ]
         Resource = [
           "arn:aws:organizations::*:ou/o-*/*",
