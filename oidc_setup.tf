@@ -27,7 +27,6 @@ resource "aws_iam_role" "github_actions" {
   })
 }
 
-# FIXED: Removed all generic wildcards to resolve CKV_AWS_287, CKV_AWS_355, CKV_AWS_288, CKV_AWS_289, and CKV_AWS_290
 resource "aws_iam_role_policy" "pipeline_least_privilege" {
   name = "terraform-pipeline-execution-policy"
   role = aws_iam_role.github_actions.id
@@ -47,7 +46,6 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "s3:GetBucketVersioning",
           "s3:GetEncryptionConfiguration"
         ]
-        # Restricts S3 actions strictly to your state storage and account global baseline
         Resource = [
           "arn:aws:s3:::sam-terraform-state-unique-bucket-name",
           "arn:aws:s3:::sam-terraform-state-unique-bucket-name/*"
@@ -61,31 +59,47 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "dynamodb:PutItem",
           "dynamodb:DeleteItem"
         ]
-        # Restricts state locking explicitly to your unique locking table
         Resource = "arn:aws:dynamodb:*:*:table/sam-terraform-locks"
       },
       {
-        Sid    = "RestrictedEC2Provisioning"
+        Sid    = "RestrictedEC2WriteOperations"
         Effect = "Allow"
         Action = [
           "ec2:RunInstances",
           "ec2:TerminateInstances",
-          "ec2:DescribeInstances",
           "ec2:CreateSecurityGroup",
           "ec2:DeleteSecurityGroup",
-          "ec2:DescribeSecurityGroups",
           "ec2:AuthorizeSecurityGroupIngress",
           "ec2:AuthorizeSecurityGroupEgress",
           "ec2:RevokeSecurityGroupIngress",
           "ec2:RevokeSecurityGroupEgress",
-          "ec2:DescribeInstanceAttribute",
-          "ec2:DescribeInstanceStatus",
           "ec2:ModifyInstanceAttribute",
-          "ec2:DescribeEbsEncryptionByDefault",
           "ec2:EnableEbsEncryptionByDefault"
         ]
-        # Non-restrictable EC2 discovery actions require a wildcard, which Checkov accepts here
-        Resource = "*" 
+        # FIXED: Removed the global "*" wildcard for write/restrictable actions to clear CKV_AWS_355 & CKV_AWS_290
+        # This restricts execution power tightly to your primary us-east-1 region space
+        Resource = [
+          "arn:aws:ec2:us-east-1:*:instance/*",
+          "arn:aws:ec2:us-east-1:*:security-group/*",
+          "arn:aws:ec2:us-east-1:*:volume/*",
+          "arn:aws:ec2:us-east-1:*:network-interface/*",
+          "arn:aws:ec2:us-east-1:*:subnet/*",
+          "arn:aws:ec2:us-east-1:*:subnet-map/*",
+          "arn:aws:ec2:us-east-1:*:image/*"
+        ]
+      },
+      {
+        Sid    = "NonRestrictableEC2Discovery"
+        Effect = "Allow"
+        Action = [
+          "ec2:DescribeInstances",
+          "ec2:DescribeSecurityGroups",
+          "ec2:DescribeInstanceAttribute",
+          "ec2:DescribeInstanceStatus",
+          "ec2:DescribeEbsEncryptionByDefault"
+        ]
+        # These are read-only lookup APIs. AWS forces them to use "*", which Checkov permits.
+        Resource = "*"
       },
       {
         Sid    = "RestrictedIAMManagement"
@@ -125,10 +139,21 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "organizations:UpdatePolicy",
           "organizations:DescribePolicy",
           "organizations:AttachPolicy",
-          "organizations:DetachPolicy",
+          "organizations:DetachPolicy"
+        ]
+        # FIXED: Confined write actions strictly to the organizational infrastructure tree path
+        Resource = [
+          "arn:aws:organizations::*:ou/o-*/*",
+          "arn:aws:organizations::*:policy/o-*/*"
+        ]
+      },
+      {
+        Sid    = "OrganizationsGlobalRead"
+        Effect = "Allow"
+        Action = [
           "organizations:DescribeOrganization"
         ]
-        Resource = "*"
+        Resource = "*" # AWS forces this specific call to use global wildcards
       },
       {
         Sid    = "GlobalAccountLevelConfigurations"
