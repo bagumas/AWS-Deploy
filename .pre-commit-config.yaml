@@ -1,0 +1,9 @@
+repos:
+  - repo: https://github.com/bridgecrewio/checkov.git
+    rev: 3.3.8  # FIXED: Target a verified stable release tag
+    hooks:
+      - id: checkov
+        name: Checkov Static Code Analysis
+        verbose: true
+        args: [--framework, terraform, --quiet]
+

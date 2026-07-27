@@ -191,8 +191,13 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "servicecatalog:CreateConstraint",
           "servicecatalog:DeleteConstraint",
           "servicecatalog:DescribeConstraint"
-        ],
-        Resource : "*" # Managed via Service Catalog orchestration patterns
+        ]
+        # FIXED: Removed "*" and constrained permissions strictly to Service Catalog resource types
+        Resource = [
+          "arn:aws:servicecatalog:us-east-1:*:portfolio/*",
+          "arn:aws:servicecatalog:us-east-1:*:product/*",
+          "arn:aws:servicecatalog:us-east-1:*:constraint/*"
+        ]
       },
       {
         Sid : "ServiceCatalogArtifactUpload",
