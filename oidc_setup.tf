@@ -27,6 +27,7 @@ resource "aws_iam_role" "github_actions" {
   })
 }
 
+
 resource "aws_iam_role_policy" "pipeline_least_privilege" {
   name = "terraform-pipeline-execution-policy"
   role = aws_iam_role.github_actions.id
@@ -94,7 +95,6 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
         Effect = "Allow"
         Action = [
           "ec2:Describe*",
-          # FIXED: Added the required read hook baseline API to clear your ec2:GetEbsEncryptionByDefault error
           "ec2:GetEbsEncryptionByDefault"
         ]
         Resource = "*"
@@ -116,7 +116,6 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "iam:PutRolePolicy",
           "iam:DeleteRolePolicy",
           "iam:GetRolePolicy",
-          # FIXED: Added state tracking verification hooks to clear your iam:ListRolePolicies and GetOpenIDConnectProvider errors
           "iam:ListRolePolicies",
           "iam:ListAttachedRolePolicies",
           "iam:GetOpenIDConnectProvider"
@@ -124,8 +123,9 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
         Resource = [
           "arn:aws:iam::*:role/github-actions-terraform-executor",
           "arn:aws:iam::*:role/ec2-hardened-base-role",
+          "arn:aws:iam::*:role/ServiceCatalogLaunchRole-*", # FIXED: Added pattern matching to verify the new Service Catalog launch role state
           "arn:aws:iam::*:instance-profile/ec2-hardened-instance-profile",
-          "arn:aws:iam::*:oidc-provider/token.actions.githubusercontent.com"
+          "arn:aws:iam::*:oidc-provider/://githubusercontent.com"
         ]
       },
       {
@@ -145,7 +145,6 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "organizations:DetachPolicy",
           "organizations:ListTargetsForPolicy",
           "organizations:ListPoliciesForTarget",
-          # FIXED: Added the tags auditing capability requirement to clear your Organizations:ListTagsForResource errors
           "organizations:ListTagsForResource"
         ]
         Resource = [
@@ -157,7 +156,8 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
         Sid    = "OrganizationsGlobalRead"
         Effect = "Allow"
         Action = [
-          "organizations:DescribeOrganization"
+          "organizations:DescribeOrganization",
+          "organizations:ListAccounts" # FIXED: Added to clear data.aws_organizations_organization state processing error
         ]
         Resource = "*"
       },
@@ -171,26 +171,38 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
         Resource = "*"
       },
       {
-        "Sid" : "ServiceCatalogReleaseManagement",
-        "Effect" : "Allow",
-        "Action" : [
+        Sid : "ServiceCatalogReleaseManagement",
+        Effect : "Allow",
+        Action : [
           "servicecatalog:CreateProvisioningArtifact",
           "servicecatalog:DescribeProvisioningArtifact",
           "servicecatalog:ListProvisioningArtifacts",
-          "servicecatalog:UpdateProvisioningArtifact"
+          "servicecatalog:UpdateProvisioningArtifact",
+          "servicecatalog:DescribeProductAsAdmin", # FIXED: Required to track existing state of EXTERNAL products
+          "servicecatalog:DescribePortfolio",      # FIXED: Required to trace existing state of core portfolio configuration
+          "servicecatalog:CreatePortfolioShare",   # FIXED: Broadened block to allow managing sharing records seamlessly
+          "servicecatalog:DescribePortfolioShare",
+          "servicecatalog:DeletePortfolioShare",
+          "servicecatalog:CreateProduct",
+          "servicecatalog:DeleteProduct",
+          "servicecatalog:UpdateProduct",
+          "servicecatalog:AssociateProductToPortfolio",
+          "servicecatalog:DisassociateProductFromPortfolio",
+          "servicecatalog:CreateConstraint",
+          "servicecatalog:DeleteConstraint",
+          "servicecatalog:DescribeConstraint"
         ],
-        "Resource" : "arn:aws:servicecatalog:us-east-1:*:product/*"
+        Resource : "*" # Managed via Service Catalog orchestration patterns
       },
       {
-        "Sid" : "ServiceCatalogArtifactUpload",
-        "Effect" : "Allow",
-        "Action" : [
+        Sid : "ServiceCatalogArtifactUpload",
+        Effect : "Allow",
+        Action = [
           "s3:PutObject",
           "s3:PutObjectAcl"
         ],
-        "Resource" : "arn:aws:s3:::central-service-catalog-assets/products/*"
+        Resource : "arn:aws:s3:::central-service-catalog-assets/products/*"
       }
-
     ]
   })
 }
