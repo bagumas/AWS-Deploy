@@ -125,7 +125,7 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "arn:aws:iam::*:role/ec2-hardened-base-role",
           "arn:aws:iam::*:role/ServiceCatalogLaunchRole-*", # FIXED: Added pattern matching to verify the new Service Catalog launch role state
           "arn:aws:iam::*:instance-profile/ec2-hardened-instance-profile",
-          "arn:aws:iam::*:oidc-provider/://githubusercontent.com"
+          "arn:aws:iam::*:oidc-provider/token.actions.githubusercontent.com" # FIXED: Binds permissions explicitly to clear the GetOpenIDConnectProvider error
         ]
       },
       {
@@ -157,7 +157,8 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
         Effect = "Allow"
         Action = [
           "organizations:DescribeOrganization",
-          "organizations:ListAccounts" # FIXED: Added to clear data.aws_organizations_organization state processing error
+          "organizations:ListAccounts", # FIXED: Added to clear data.aws_organizations_organization state processing error
+          "organizations:ListRoots"     # FIXED: Added to clear data.aws_organizations_organization validation errors
         ]
         Resource = "*"
       },
@@ -190,7 +191,8 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "servicecatalog:DisassociateProductFromPortfolio",
           "servicecatalog:CreateConstraint",
           "servicecatalog:DeleteConstraint",
-          "servicecatalog:DescribeConstraint"
+          "servicecatalog:DescribeConstraint",
+          "servicecatalog:ListPortfoliosForProduct" # FIXED: Required to track existing portfolio bindings
         ]
         # FIXED: Removed "*" and constrained permissions strictly to Service Catalog resource types
         Resource = [
