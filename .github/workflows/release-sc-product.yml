@@ -12,7 +12,7 @@ permissions:
 env:
   AWS_REGION: "us-east-1"
   ROLE_TO_ASSUME: "arn:aws:iam::266408865927:role/github-actions-terraform-executor"
-  S3_BUCKET: "central-service-catalog-assets"
+  S3_BUCKET: "service-catalog-assets-266408865927" 
   PRODUCT_NAME: "Secure S3 Storage Bucket"
 
 jobs:

@@ -215,7 +215,7 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "s3:PutObject",
           "s3:PutObjectAcl"
         ],
-        Resource : "arn:aws:s3:::central-service-catalog-assets/products/*"
+        Resource : "arn:aws:s3:::service-catalog-assets-266408865927/products/*"
       }
     ]
   })

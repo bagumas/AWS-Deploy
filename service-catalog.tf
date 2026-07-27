@@ -23,7 +23,7 @@ resource "aws_servicecatalog_product" "secure_s3" {
     name         = "v1.0.0"
     description  = "Initial secure S3 baseline with enforced KMS and TLS 1.2"
     type         = "EXTERNAL" # FIXED: Replaced TERRAFORM_OPEN_SOURCE with EXTERNAL
-    template_url = "https://amazonaws.com"
+    template_url = "https://service-catalog-assets-266408865927.s3.us-east-1.amazonaws.com/products/secure-s3-v1.0.0.tar.gz"
 
     # FIXED: Instructs AWS to bypass CloudFormation parsing for Terraform archives
     disable_template_validation = true
