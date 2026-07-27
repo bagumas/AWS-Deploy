@@ -16,7 +16,10 @@ resource "aws_iam_role" "github_actions" {
         Action    = "sts:AssumeRoleWithWebIdentity"
         Condition = {
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = "repo:bagumas@33612024/AWS-Deploy@1312335209:ref:refs/heads/main"
+            "token.actions.githubusercontent.com:sub" = [
+              "repo:bagumas@33612024/AWS-Deploy@1312335209:ref:refs/heads/main",
+              "repo:bagumas@33612024/AWS-Deploy@1312335209:ref:refs/tags/v*"
+            ]
           }
           StringEquals = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
@@ -177,6 +180,9 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
         Sid : "ServiceCatalogReleaseManagement",
         Effect : "Allow",
         Action : [
+          "servicecatalog:SearchProductsAsAdmin",
+          "servicecatalog:CreateProvisioningArtifact",
+          "servicecatalog:DescribeProvisioningArtifact",
           "servicecatalog:CreateProvisioningArtifact",
           "servicecatalog:DescribeProvisioningArtifact",
           "servicecatalog:ListProvisioningArtifacts",

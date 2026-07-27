@@ -6,12 +6,12 @@ on:
       - 'v*'  # Triggers on version tags (e.g., v1.1.0, v2.0.0)
 
 permissions:
-  id-token: write  # Critical requirement for AWS OIDC authentication
+  id-token: write  # Required for AWS OIDC authentication
   contents: read
 
 env:
   AWS_REGION: "us-east-1"
-  ROLE_TO_ASSUME: "arn:aws:iam::123456789012:role/github-actions-terraform-executor" # Swap with your true Account ID
+  ROLE_TO_ASSUME: "arn:aws:iam::266408865927:role/github-actions-terraform-executor"
   S3_BUCKET: "central-service-catalog-assets"
   PRODUCT_NAME: "Secure S3 Storage Bucket"
 
@@ -31,7 +31,6 @@ jobs:
 
       - name: Package Module Tarball
         run: |
-          # Compress the directory enclosing your runtime Terraform manifests
           tar -czvf secure-s3-${{ github.ref_name }}.tar.gz secure-s3-product/
 
       - name: Upload Release Artifact to S3
@@ -41,27 +40,31 @@ jobs:
 
       - name: Register New Product Version in Service Catalog
         run: |
-          # 1. Dynamically retrieve the Product ID by its explicit system Name
+          # 1. Retrieve the Product ID by name
           PRODUCT_ID=$(aws servicecatalog search-products-as-admin \
             --filters "FullTextSearch=${{ env.PRODUCT_NAME }}" \
             --query "ProductViewDetails[0].ProductViewSummary.ProductId" --output text)
-          
+
           if [ "$PRODUCT_ID" == "None" ] || [ -z "$PRODUCT_ID" ]; then
             echo "Error: Target Service Catalog Product could not be found."
             exit 1
           fi
-          
+
           echo "Found Target Product ID: $PRODUCT_ID"
 
-          # 2. Programmatically cut a new Provisioning Artifact Version pointing to the new asset
+          # 2. Cut a new Provisioning Artifact version pointing to the uploaded asset
+          cat > params.json <<EOF
+          {
+            "Name": "${{ github.ref_name }}",
+            "Description": "Automated distribution via GitHub Run ID ${{ github.run_id }}",
+            "Type": "EXTERNAL",
+            "Info": {
+              "LoadTemplateFromURL": "https://${{ env.S3_BUCKET }}.s3.${{ env.AWS_REGION }}.amazonaws.com/products/secure-s3-${{ github.ref_name }}.tar.gz"
+            },
+            "DisableTemplateValidation": true
+          }
+          EOF
+
           aws servicecatalog create-provisioning-artifact \
             --product-id "$PRODUCT_ID" \
-            --parameters "{
-              \"Name\": \"${{ github.ref_name }}\",
-              \"Description\": \"Automated distribution via GitHub Run ID ${{ github.run_id }}\",
-              \"Type\": \"\EXTERNAL",
-              \"Info\": {
-                \"LoadTemplateFromURL\": \"https://${{ env.S3_BUCKET }}.s3.${{ env.AWS_REGION }}://{{ github.ref_name }}.tar.gz\"
-              }
-            }"
-
+            --parameters file://params.json
