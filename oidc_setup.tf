@@ -186,11 +186,14 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "servicecatalog:CreateProvisioningArtifact",
           "servicecatalog:DescribeProvisioningArtifact",
           "servicecatalog:ListProvisioningArtifacts",
+          "servicecatalog:ListConstraintsForPortfolio",
+          "servicecatalog:ListPrincipalsForPortfolio",
           "servicecatalog:UpdateProvisioningArtifact",
           "servicecatalog:DescribeProductAsAdmin", # FIXED: Required to track existing state of EXTERNAL products
           "servicecatalog:DescribePortfolio",      # FIXED: Required to trace existing state of core portfolio configuration
           "servicecatalog:CreatePortfolioShare",   # FIXED: Broadened block to allow managing sharing records seamlessly
           "servicecatalog:DescribePortfolioShare",
+          "servicecatalog:DescribePortfolioShares",
           "servicecatalog:DeletePortfolioShare",
           "servicecatalog:CreateProduct",
           "servicecatalog:DeleteProduct",
