@@ -54,7 +54,7 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
         ]
         Resource = [
           "arn:aws:s3:::sam-terraform-state-unique-bucket-name",
-          "arn:aws:s3:::sam-terraform-state-unique-bucket-name/*"
+          "arn:aws:s3:::sam-terraform-state-unique-bucket-name/global/s3/terraform.tfstate"
         ]
       },
       {
@@ -122,14 +122,11 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
           "iam:GetRolePolicy",
           "iam:ListRolePolicies",
           "iam:ListAttachedRolePolicies",
-          "iam:GetOpenIDConnectProvider"
         ]
         Resource = [
-          "arn:aws:iam::*:role/github-actions-terraform-executor",
           "arn:aws:iam::*:role/ec2-hardened-base-role",
           "arn:aws:iam::*:role/ServiceCatalogLaunchRole-*", # FIXED: Added pattern matching to verify the new Service Catalog launch role state
           "arn:aws:iam::*:instance-profile/ec2-hardened-instance-profile",
-          "arn:aws:iam::*:oidc-provider/token.actions.githubusercontent.com" # FIXED: Binds permissions explicitly to clear the GetOpenIDConnectProvider error
         ]
       },
       {
