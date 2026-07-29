@@ -71,6 +71,8 @@ resource "aws_iam_role_policy" "pipeline_least_privilege" {
         Sid    = "RestrictedEC2WriteOperations"
         Effect = "Allow"
         Action = [
+          "ec2:MonitorInstances",
+          "ec2:UnmonitorInstances",
           "ec2:RunInstances",
           "ec2:TerminateInstances",
           "ec2:CreateTags",
