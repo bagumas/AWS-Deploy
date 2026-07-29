@@ -53,6 +53,8 @@ resource "aws_instance" "my_ec2" {
 
   tags = {
     Name = "GitHub-Actions-EC2-Hardened"
+    Environment = "dev"
+    ManagedBy   = "terraform"
   }
 }
 
