@@ -3,6 +3,12 @@ resource "aws_security_group" "ec2_sg" {
   name        = "ec2-allow-ssh-secure"
   description = "Security group for hardened EC2 instance allowing restricted SSH"
 
+  tags = {
+    Name        = "ec2-allow-ssh-secure"
+    Environment = "dev"
+    ManagedBy   = "terraform"
+  }
+
   ingress {
     description = "Allow inbound SSH traffic from corporate network range"
     from_port   = 22
@@ -52,7 +58,7 @@ resource "aws_instance" "my_ec2" {
   }
 
   tags = {
-    Name = "GitHub-Actions-EC2-Hardened"
+    Name        = "GitHub-Actions-EC2-Hardened"
     Environment = "dev"
     ManagedBy   = "terraform"
   }
